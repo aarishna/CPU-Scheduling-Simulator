@@ -1,64 +1,103 @@
 #include <stdio.h>
-#define max 10
-int round_robin(int burst_time[], int n, int quantum){
-    int remaining[max];
-    int waiting_time= 0; 
-    int turnaround_time= 0;
+#include <stdlib.h>
+#include <stdbool.h>
+#include "process.h"
+#include "scheduler.h"
+#include "queue.h"
 
-    for (int i=0; i<n; i++){
-        remaining[i]=burst_time[i];
+void rr_schedule(Process *processes, int n, int time_quantum, GanttChart *chart) {
+    int current_time = 0;
+    int completed = 0;
+
+    Queue *ready_queue = create_queue(n * 10);
+    bool *in_queue = calloc(n, sizeof(bool));
+
+    for (int i = 0; i < n; i++) {
+        processes[i].remaining_time = processes[i].burst_time;
     }
-    int current_time = 0; 
-    int completed =0;
 
-    printf("Process No.\t Burst time \t Waiting time\t Turnaround time\n");
-    while (completed< n)
-    {
-        int all_done = 1 ;
+    printf("\n=== Round Robin Scheduling (Quantum: %d) ===\n", time_quantum);
 
-        for (int i=0; i<n; i++){
-            if (remaining[i]>0){
-                all_done=0;
+    for (int i = 0; i < n; i++) {
+        if (processes[i].arrival_time == 0) {
+            enqueue(ready_queue, i);
+            in_queue[i] = true;
+            printf("Time %d: Process P%d added to ready queue\n",
+                   current_time, processes[i].pid);
+        }
+    }
 
-                if (remaining[i]<=quantum){
-                    current_time+=remaining[i];
-                    int turnaround = current_time;
-                    int waiting = turnaround - burst_time[i];
-                    printf("P%d\t\t %d\t\t %d\t\t %d\n", i + 1, burst_time[i], waiting, turnaround);
-                    
-                    waiting_time += waiting;
-                    turnaround_time += turnaround;
-                    remaining[i] = 0;
-                    completed++;
-                }
-                else{
-                    current_time +=quantum;
-                    remaining[i]-=quantum;
+    while (completed < n) {
+        if (is_empty(ready_queue)) {
+            current_time++;
+
+            for (int i = 0; i < n; i++) {
+                if (!in_queue[i] &&
+                    processes[i].arrival_time <= current_time &&
+                    processes[i].remaining_time > 0) {
+                    enqueue(ready_queue, i);
+                    in_queue[i] = true;
+                    printf("Time %d: Process P%d added to ready queue\n",
+                           current_time, processes[i].pid);
                 }
             }
+
+            continue;
         }
-        if (all_done){break;}
 
-        
-    printf("Average turnaround time: %.2f\n", (float) turnaround_time / n);
-    printf("Average waiting time: %.2f", (float) waiting_time / n);
-}}
-    
+        int idx = dequeue(ready_queue);
+        in_queue[idx] = false;
+        Process *p = &processes[idx];
 
+        if (p->first_run_time == -1) {
+            p->first_run_time = current_time;
+            p->response_time = current_time - p->arrival_time;
+            printf("Time %d: Process P%d starts for the first time\n",
+                   current_time, p->pid);
+        }
 
-int main (){
-    int n, bt[max],quantum;
+        int exec_time = (p->remaining_time < time_quantum)
+                            ? p->remaining_time
+                            : time_quantum;
 
-    printf("Enter the number of processes (MAX 10): ");
-    scanf("%d",&n);
+        add_gantt_entry(chart, p->pid, current_time, current_time + exec_time);
 
-    printf("Enter burst time of each process \n\n");
-    for (int i=0; i < n ; i++){
-        printf("Enter burst time of process %d: ", i);
-        scanf("%d", &bt[i]);
+        p->remaining_time -= exec_time;
+        int start_time = current_time;
+        current_time += exec_time;
+
+        printf("Time %d-%d: Process P%d executes (Remaining: %d)\n",
+               start_time, current_time, p->pid, p->remaining_time);
+
+        for (int i = 0; i < n; i++) {
+            if (!in_queue[i] &&
+                i != idx &&
+                processes[i].arrival_time <= current_time &&
+                processes[i].remaining_time > 0) {
+                enqueue(ready_queue, i);
+                in_queue[i] = true;
+                printf("Time %d: Process P%d added to ready queue\n",
+                       current_time, processes[i].pid);
+            }
+        }
+
+        if (p->remaining_time == 0) {
+            p->completion_time = current_time;
+            p->turnaround_time = p->completion_time - p->arrival_time;
+            p->waiting_time = p->turnaround_time - p->burst_time;
+
+            printf("Time %d: Process P%d completed (Turnaround: %d, Waiting: %d)\n",
+                   current_time, p->pid, p->turnaround_time, p->waiting_time);
+
+            completed++;
+        } else {
+            enqueue(ready_queue, idx);
+            in_queue[idx] = true;
+        }
     }
-    printf("Enter time quantum: ");
-    scanf("%d", &quantum);
-    round_robin(bt,n,quantum);
-    return 0;
+
+    free_queue(ready_queue);
+    free(in_queue);
+
+    printf("Round Robin scheduling completed at time %d\n", current_time);
 }
