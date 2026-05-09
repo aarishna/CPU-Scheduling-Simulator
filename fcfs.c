@@ -1,38 +1,40 @@
-    #include "scheduler.h"
-    #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "process.h"
+#include "scheduler.h"
 
+void fcfs_schedule(Process *processes, int n, GanttChart *chart) {
+    int current_time = 0;
 
-    int schedule_fcfs(Process *procs, int n, TimelineEvent *timeline) {
-        int current_time = 0;     
-        int timeline_idx = 0;     // Track Gantt chart events
-        
-        for (int i = 0; i < n; i++) {
-            // Handle idle time (if process hasn't arrived yet)
-            if (current_time < procs[i].arrival_time) {
-                current_time = procs[i].arrival_time;
-            }
-            
-            // Record when process first starts
-            if (procs[i].start_time == -1) {
-                procs[i].start_time = current_time;
-            }
-        
-            
-            // Create timeline event 
-            timeline[timeline_idx].pid = procs[i].pid;
-            timeline[timeline_idx].start = current_time;
-            timeline[timeline_idx].end = current_time + procs[i].burst_time;
-            strcpy(timeline[timeline_idx].state, "running");
-            timeline_idx++;
-            
+    printf("\n=== FCFS Scheduling ===\n");
 
-            current_time += procs[i].burst_time;
-            
-            // Record completion time 
-            procs[i].completion_time = current_time;
-            
-        
+    for (int i = 0; i < n; i++) {
+        if (current_time < processes[i].arrival_time) {
+            printf("Time %d-%d: CPU idle\n", current_time, processes[i].arrival_time);
+            current_time = processes[i].arrival_time;
         }
-        
-        return timeline_idx;
+
+        if (processes[i].first_run_time == -1) {
+            processes[i].first_run_time = current_time;
+            processes[i].response_time = current_time - processes[i].arrival_time;
+        }
+
+        printf("Time %d: Process P%d starts (Burst: %d)\n",
+               current_time, processes[i].pid, processes[i].burst_time);
+
+        add_gantt_entry(chart, processes[i].pid, current_time,
+                        current_time + processes[i].burst_time);
+
+        current_time += processes[i].burst_time;
+
+        processes[i].completion_time = current_time;
+        processes[i].turnaround_time = processes[i].completion_time - processes[i].arrival_time;
+        processes[i].waiting_time = processes[i].turnaround_time - processes[i].burst_time;
+
+        printf("Time %d: Process P%d completed (Waiting: %d, Turnaround: %d)\n",
+               current_time, processes[i].pid, processes[i].waiting_time,
+               processes[i].turnaround_time);
     }
+
+    printf("FCFS scheduling completed at time %d\n", current_time);
+}
