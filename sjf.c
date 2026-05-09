@@ -1,58 +1,56 @@
 #include <stdio.h>
-#define max 10
+#include <stdlib.h>
+#include <limits.h>
+#include <stdbool.h>
+#include "process.h"
+#include "scheduler.h"
 
-void sjf(int pid[], int bt[], int n){
-    int waiting_time = 0;
-    int turnaround_time = 0; 
-    int total =0;
-    for (int i=0; i< n-1; i++){
-        for (int j=0; j< n-i-1; j++){
-            if (bt[j]>bt[j+1]){
-                int temp = bt[j];
-                bt[j]=bt[j+1];
-                bt[j+1]=temp;
+void sjf_schedule(Process *processes, int n, GanttChart *chart) {
+    int current_time = 0;
+    int completed = 0;
+    bool *is_completed = calloc(n, sizeof(bool));
 
-                temp=pid[j];
-                pid[j]=pid[j+1];
-                pid[j+1]=temp;
+    printf("\n=== SJF Scheduling ===\n");
 
+    while (completed < n) {
+        int shortest_idx = -1;
+        int shortest_burst = INT_MAX;
+
+        for (int i = 0; i < n; i++) {
+            if (!is_completed[i] &&
+                processes[i].arrival_time <= current_time &&
+                processes[i].burst_time < shortest_burst) {
+                shortest_burst = processes[i].burst_time;
+                shortest_idx = i;
             }
         }
+
+        if (shortest_idx == -1) {
+            current_time++;
+            continue;
+        }
+
+        Process *p = &processes[shortest_idx];
+
+        if (p->first_run_time == -1) {
+            p->first_run_time = current_time;
+            p->response_time = current_time - p->arrival_time;
+        }
+
+        add_gantt_entry(chart, p->pid, current_time, current_time + p->burst_time);
+
+        current_time += p->burst_time;
+        p->completion_time = current_time;
+        p->turnaround_time = p->completion_time - p->arrival_time;
+        p->waiting_time = p->turnaround_time - p->burst_time;
+
+        printf("Time %d: Process P%d completed (Burst: %d, Waiting: %d)\n",
+               current_time, p->pid, p->burst_time, p->waiting_time);
+
+        is_completed[shortest_idx] = true;
+        completed++;
     }
-     printf("\nProcess No.\tWaiting Time\tTurnaround Time\n");
-    for (int i = 0; i < n; ++i)
-    {
-        total += bt[i];
-        
-        printf("%d\t\t%d\t\t%d\n", pid[i], (total - bt[i]), total);
-        
-        waiting_time += (total - bt[i]);
-        turnaround_time += total;
-    }
-    printf("\n");    
-    printf("The average waiting time is: %.2f\n", ((float) waiting_time / n));
-    printf("The average turnaround time is: %.2f\n", ((float) turnaround_time / n));
-}
-int main(void)
-{
-    int burst_time[max], pid[max];
-    int n;
-    
-    printf("Enter the number of processes: ");
-    scanf("%d", &n);
-    
-    printf("Enter the burst times of each process:\n");
-    for (int i = 0; i < n; ++i)
-    {
-        printf("Enter the burst time of process %d: ", (i + 1));
-        scanf("%d", &burst_time[i]);
-        
-        pid[i] = (i + 1);
-    }
-    
-    sjf(pid, burst_time, n);
-    
-    printf("\n");
-    
-    return 0;
+
+    free(is_completed);
+    printf("SJF scheduling completed at time %d\n", current_time);
 }
