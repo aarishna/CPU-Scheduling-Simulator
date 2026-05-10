@@ -1,0 +1,91 @@
+{
+  "algorithm": "STCF",
+  "num_processes": 5,
+  "metrics": {
+    "avg_waiting_time": 9.20,
+    "avg_turnaround_time": 15.80,
+    "avg_response_time": 4.60,
+    "cpu_utilization": 100.00,
+    "throughput": 0.1515,
+    "total_time": 33
+  },
+  "processes": [
+    {
+      "pid": 1,
+      "arrival_time": 0,
+      "burst_time": 10,
+      "completion_time": 33,
+      "turnaround_time": 33,
+      "waiting_time": 23,
+      "response_time": 0
+    },
+    {
+      "pid": 2,
+      "arrival_time": 1,
+      "burst_time": 5,
+      "completion_time": 6,
+      "turnaround_time": 5,
+      "waiting_time": 0,
+      "response_time": 0
+    },
+    {
+      "pid": 3,
+      "arrival_time": 2,
+      "burst_time": 8,
+      "completion_time": 24,
+      "turnaround_time": 22,
+      "waiting_time": 14,
+      "response_time": 14
+    },
+    {
+      "pid": 4,
+      "arrival_time": 3,
+      "burst_time": 6,
+      "completion_time": 16,
+      "turnaround_time": 13,
+      "waiting_time": 7,
+      "response_time": 7
+    },
+    {
+      "pid": 5,
+      "arrival_time": 4,
+      "burst_time": 4,
+      "completion_time": 10,
+      "turnaround_time": 6,
+      "waiting_time": 2,
+      "response_time": 2
+    }
+  ],
+  "gantt_chart": [
+    {
+      "pid": 1,
+      "start": 0,
+      "end": 1
+    },
+    {
+      "pid": 2,
+      "start": 1,
+      "end": 6
+    },
+    {
+      "pid": 5,
+      "start": 6,
+      "end": 10
+    },
+    {
+      "pid": 4,
+      "start": 10,
+      "end": 16
+    },
+    {
+      "pid": 3,
+      "start": 16,
+      "end": 24
+    },
+    {
+      "pid": 1,
+      "start": 24,
+      "end": 33
+    }
+  ]
+}
